@@ -1,0 +1,1 @@
+FOR /R %f IN (*.shp) DO topojson -o "%~dpnf.topojson" "%f" -p
