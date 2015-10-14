@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+
+.regione {
+	fill:#fff;
+	fill-opacity:0;
+	stroke: #000;
+
+}
+
+.active {
+	fill:none;
+	stroke: #000;
+
+}
+
+.provincia {
+	fill:#F0F0F0;
+	stroke: #fff;
+}
+
+
+</style>
+
+
+
+</head>
+<body>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+
+<div class = "content container">
+	<div class = "col-xs-9 map">
+	</div>
+	<div class = "col-xs-3 map">
+	</div>
+
+</div>
+<script>
+var margin = {top: 5, left: 5, bottom: 5, right: 5}, 
+	width = parseInt(d3.select('.map').style('width')),
+	width = width - margin.left - margin.right,
+	height = width * 0.68
+	active = d3.select(null);
+  
+d3.select(window).on('resize', resize);
+function resize() {
+    width = parseInt(d3.select('.map').style('width'));
+    width = width - margin.left - margin.right;
+    height = width /2;
+
+    projection
+        .translate([width / 2, height / 2])
+        .scale(width * 8);
+
+	d3.select("#italia")
+		.style('width',width)
+		.style('height',height);
+
+    svg.selectAll(".regioni").attr('d', path);
+}
+
+var projection = d3.geo.mercator()
+    .center([12, 42])
+    .scale(width * 2)
+    .translate([width / 2, height / 2]);
+
+var svg = d3.select(".map").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+	.attr("id","italia")
+	.append("g");
+	
+var path = d3.geo.path()
+	.projection(projection)
+
+d3.json("/data/italia.json", function(error, Italia) {
+	var regioni = topojson.feature(Italia, Italia.objects.regioni),
+		province= topojson.feature(Italia, Italia.objects.province);
+	console.log(regioni.features);
+	svg.selectAll(".province")
+		.data(province.features)
+		.enter()
+		.append("path")
+		.attr("class", "provincia")
+		.attr("d", path)
+		.on("click",click);
+
+	svg.selectAll(".regione")
+		.data(regioni.features)
+		.enter()
+		.append("path")
+		.attr("class", "regione")
+		.attr("id", function(d) { return "reg" + d.properties.COD_REG;})
+		.attr("d", path)
+		.on("click",click);
+		
+});
+function click(d) {
+  if (active.node() === this) return reset();
+  
+  active.classed("active", false);
+  active = d3.select(this).classed("active", true);
+  var bounds = path.bounds(d),
+      dx = bounds[1][0] - bounds[0][0],
+      dy = bounds[1][1] - bounds[0][1],
+      x = (bounds[0][0] + bounds[1][0]) / 2,
+      y = (bounds[0][1] + bounds[1][1]) / 2,
+      scale = .9 / Math.max(dx / width, dy / height),
+      translate = [width / 2 - scale * x, height / 2 - scale * y];
+	svg.transition()
+      .duration(1000)
+      .style("stroke-width", 1.5 / scale + "px")
+      .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+
+	  
+	  }
+	  
+function reset() {
+  active.classed("active", false);
+  active = d3.select(null);
+
+  svg.transition()
+      .duration(500)
+      .style("stroke-width", "1.5px")
+      .attr("transform", "");
+}
+
+</script>
+</body>
+</html>
