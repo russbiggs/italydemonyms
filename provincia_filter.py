@@ -1,5 +1,5 @@
 import ogr
-shp = ogr.Open('comuni_4326.shp')
+shp = ogr.Open('comuni_join.shp')
 '''There are 110 provincia'''
 prov_ids = range(1,111)
 drv = ogr.GetDriverByName('ESRI Shapefile')
@@ -9,7 +9,7 @@ srs.MorphToESRI()
 for prov in prov_ids:
     lyr = shp.GetLayer()
     prov = str(prov)
-    lyr.SetAttributeFilter("COD_PRO = '%s'" %(prov))
+    lyr.SetAttributeFilter("comuni_4_2 = '%s'" %(prov))
     output_file = "comuni_%s.shp" %(prov)
     output_shp = drv.CreateDataSource(output_file)
     outlyr = output_shp.CopyLayer(lyr, 'comuni_%s' %(prov)) 

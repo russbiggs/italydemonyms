@@ -1,1 +1,1 @@
-FOR /R %f IN (*.shp) DO topojson -o "%~dpnf.topojson"  -p id=PRO_COM,istat=COD_ISTAT,prov=COD_PRO,reg=COD_REG -- "%f"
+FOR /R %f IN (*.shp) DO topojson -o "%~dpnf.topojson"  -p id=comuni_4_2,nome=comuni_4_5,prov_id=comuni_4_2,prov_nm=comuni_c_1,reg_id=comuni_4_1,reg_nm=comuni_cle -- comuni="%f"
