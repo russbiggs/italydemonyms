@@ -5,6 +5,10 @@
 <style>
 
 
+body {
+	background-color:black;
+}
+
 .map {
 	background-color: #C2D5F3;
 
@@ -17,20 +21,26 @@
 .regione {
 	fill:none;
 	stroke: #000;
-	stroke-width:1px;
-
+	stroke-width:.025em;
+	stroke-linejoin:round;
 }
 
 .provincia {
 	fill:#fff;
 	stroke: #000;
-	stroke-width:.5px;
+	stroke-width:.0125em;
+	stroke-linejoin:round;
+}
+
+.provincia:hover {
+	fill:#91DB60;
 }
 
 .comune {
 	fill:#fff;
 	stroke: #000;
-	stroke-width:.25px;
+	stroke-linejoin:round;
+	stroke-width:.0065em;
 }
 
 .comune:hover {
@@ -43,11 +53,16 @@
 
 }
 
+.reg-label {
+	font-size:.5em;
+}
+
 .info-panel {
-	padding:20px 20px 20px 20px;
+	padding:10px 15px 10px 15px;
 	border-radius:5px;
-	border:black;
+	border:.125em solid black;
 	background-color: rgba(255, 255, 255, 0.95);
+	box-shadow: 1px 1px 1px rgba(117, 117, 117, 0.55);
 }
 
 </style>
@@ -64,12 +79,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 
 <div class = "content container">
-	<div class = "col-md-2 hidden-xs">
-		<h2>Nome abitanti di ogni comune d'Italia </h2>
-		<p> clicca una provincia per vedere i comuni. </p>
+	<div class = "col-md-3 hidden-xs">
+		<h2>Nome abitanti dei comuni d'Italia </h2>
+		<ul>
+		<li> cliccare una provincia per vedere i comuni. </li>
+		<li> fermare su mouse sul comune per vedere il nome abitanti. </li>
+		<li> Fare un doppio click per rimpicciolire la vista </li>
+		</ul>
+		
 		<p>tutti i dati sono di http://it.wikipedia.org</p> 
 	</div>
-	<div class = "col-md-10 hidden-xs map">
+	<div class = "col-md-9 hidden-xs map">
 	</div>
 </div>
 <script>
@@ -79,8 +99,6 @@ var margin = {top: 5, left: 5, bottom: 5, right: 5},
 	height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 	active = d3.select(null);
 
-
-	
 d3.select(window).on('resize', resize);
 function resize() {
     width = parseInt(d3.select('.map').style('width'));
@@ -90,7 +108,7 @@ function resize() {
 
     projection
         .translate([width / 2, height / 2])
-        .scale(width * 2.2);
+        .scale(width * 2.5);
 
 	d3.select("#italia")
 		.style('width',width)
@@ -115,7 +133,7 @@ var tooltip = d3.select("body")
 
 var projection = d3.geo.mercator()
     .center([12, 42])
-    .scale(width * 2.2)
+    .scale(width * 2.5)
     .translate([width / 2, height / 2]);
 
 var svg = d3.select(".map").append("svg")
@@ -148,8 +166,8 @@ d3.json("/data/italia.topojson", function(error, Italia) {
 		.attr("id", function(d) { return "prov_" + d.properties.id;})
 		.attr("d", path)
 		.on("click",click)
-		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("Provincia di: " + d.properties.name);})
-		.on("mousemove", function(){return tooltip.style("top", (event.pageY-20) + "px").style("left",(event.pageX + 20)+"px");})
+		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("Provincia di " + d.properties.name);})
+		.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-45) + "px").style("left",(d3.event.pageX + 20)+"px");})
 		.on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
 	svg.selectAll(".regione")
@@ -160,19 +178,42 @@ d3.json("/data/italia.topojson", function(error, Italia) {
 		.attr("id", function(d) { return "reg_" + d.properties.id;})
 		.attr("d", path);
 		
+	svg.selectAll("text")
+		.data(regioni.features,function(d,i) {return d+i})
+		.enter()
+		.append("text")
+		.text(function(d) {return d.properties.name;})
+		.attr("x", function(d){
+			return path.centroid(d)[0] - 15;
+		})
+		.attr("y", function(d){
+			return  path.centroid(d)[1];
+		})
+		.attr("class","reg-label");	  
+		
 });
 
 var j = 1;
 
 function click(d) {
+	d3.selectAll(".reg-label").attr("visibility", "hidden");
 	if (active.node() != null && active.node() != this) {
 		d3.selectAll(".com_" + active.data()[0].properties.id).remove();
 	};
 	console.log(active.node());
 	active.classed("active", false);
 	active = d3.select(this).classed("active", true);
-	find_bounds(d);
-  
+	var bounds = path.bounds(d),
+		dx = bounds[1][0] - bounds[0][0],
+		dy = bounds[1][1] - bounds[0][1],
+		x = (bounds[0][0] + bounds[1][0]) / 2,
+		y = (bounds[0][1] + bounds[1][1]) / 2,
+		scale = .7 / Math.max(dx / width, dy / height),
+		translate = [width / 2 - scale * x, height / 2 - scale * y];
+	svg.transition()
+		.duration(1500)
+		.attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+		
 	var comune_file = "/data/comuni/comuni_" + d.properties.id + ".topojson";
   
   	d3.json(comune_file, function(error, comuni) {
@@ -184,8 +225,8 @@ function click(d) {
 		.attr("class", function(d,i) {return "comune " + "com_" + d.properties.prov_id;})
 		.attr("id", function(d,i) {return d.properties.id;})
 		.attr("d", path)
-		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("Nome di comune: " + d.properties.nome + "<br/> Nome abitanti:" + d.properties.demonym);})
-		.on("mousemove", function(){return tooltip.style("top", (event.pageY-20) + "px").style("left",(event.pageX + 20)+"px");})
+		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("<b>Comune: </b>" + d.properties.nome + "<br/> <b>Nome abitanti: </b>" + d.properties.demonym);})
+		.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY - 45) + "px").style("left", (d3.event.pageX + 20) + "px");})
 		.on("mouseout", function(){return tooltip.style("visibility", "hidden");})
 		.on("dblclick", reset);
 		
@@ -193,21 +234,9 @@ function click(d) {
 	});
 }
 
-function find_bounds(d) {
-	var bounds = path.bounds(d),
-		dx = bounds[1][0] - bounds[0][0],
-		dy = bounds[1][1] - bounds[0][1],
-		x = (bounds[0][0] + bounds[1][0]) / 2,
-		y = (bounds[0][1] + bounds[1][1]) / 2,
-		scale = .7 / Math.max(dx / width, dy / height),
-		translate = [width / 2 - scale * x, height / 2 - scale * y];
-	svg.transition()
-		.duration(1500)
-		.style("stroke-width", 1 / scale + "px")
-		.attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-}
 
 function reset() {
+	d3.selectAll(".reg-label").attr("visibility", "visible");
 	var provNum =  d3.select(this).data()[0].properties.prov_id;
 	d3.selectAll(".com_" + provNum).remove();
 	active.classed("active", false);
@@ -218,7 +247,6 @@ function reset() {
 		.style("stroke-width", ".75px")
 		.attr("transform", "");
 }
-
 
 </script>
 </body>
