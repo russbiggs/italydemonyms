@@ -4,30 +4,50 @@
 <meta charset="UTF-8">
 <style>
 
+
+.map {
+	background-color: #C2D5F3;
+
+}
+
+.euro {
+	fill:#F0F0F0;
+}
+
 .regione {
 	fill:none;
 	stroke: #000;
+	stroke-width:1px;
 
 }
 
 .provincia {
-	fill:#F0F0F0;
-	stroke: #fff;
+	fill:#fff;
+	stroke: #000;
+	stroke-width:.5px;
 }
 
 .comune {
-	fill:#F0F0F0;
-	stroke: #fff;
+	fill:#fff;
+	stroke: #000;
+	stroke-width:.25px;
 }
 
 .comune:hover {
-	fill:red;
-	stroke: #fff;
+	fill:#319400;
+	stroke: #000;
 }
 .active {
 	fill:none;
 	stroke: #000;
 
+}
+
+.info-panel {
+	padding:20px 20px 20px 20px;
+	border-radius:5px;
+	border:black;
+	background-color: rgba(255, 255, 255, 0.95);
 }
 
 </style>
@@ -44,39 +64,58 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 
 <div class = "content container">
-	<div class = "col-xs-9 map">
+	<div class = "col-md-2 hidden-xs">
+		<h2>Nome abitanti di ogni comune d'Italia </h2>
+		<p> clicca una provincia per vedere i comuni. </p>
+		<p>tutti i dati sono di http://it.wikipedia.org</p> 
 	</div>
-	<div class = "col-xs-3 map">
+	<div class = "col-md-10 hidden-xs map">
 	</div>
-
 </div>
 <script>
 var margin = {top: 5, left: 5, bottom: 5, right: 5}, 
 	width = parseInt(d3.select('.map').style('width')),
 	width = width - margin.left - margin.right,
-	height = width * 0.68
+	height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 	active = d3.select(null);
-  
+
+
+	
 d3.select(window).on('resize', resize);
 function resize() {
     width = parseInt(d3.select('.map').style('width'));
+	console.log(width);
     width = width - margin.left - margin.right;
-    height = width /2;
+    height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 
     projection
         .translate([width / 2, height / 2])
-        .scale(width * 8);
+        .scale(width * 2.2);
 
 	d3.select("#italia")
 		.style('width',width)
 		.style('height',height);
-
-    svg.selectAll(".regioni").attr('d', path);
+		
+	svg.selectAll(".euro").attr('d', path);
+	
+    svg.selectAll(".regione").attr('d', path);
+	
+	svg.selectAll(".provincia").attr('d', path);
+	
+	svg.selectAll(".comune").attr('d', path);
 }
+
+var tooltip = d3.select("body")
+	.append("div")
+	.style("position", "absolute")
+	.attr("class", "info-panel")
+	.style("z-index", "10")
+	.style("visibility", "hidden");
+
 
 var projection = d3.geo.mercator()
     .center([12, 42])
-    .scale(width * 2)
+    .scale(width * 2.2)
     .translate([width / 2, height / 2]);
 
 var svg = d3.select(".map").append("svg")
@@ -89,9 +128,18 @@ var path = d3.geo.path()
 	.projection(projection)
 
 d3.json("/data/italia.topojson", function(error, Italia) {
+	console.log(Italia.objects);
 	var regioni = topojson.feature(Italia, Italia.objects.regioni),
-		province= topojson.feature(Italia, Italia.objects.province);
-		
+		province = topojson.feature(Italia, Italia.objects.province),
+		euro = topojson.feature(Italia, Italia.objects.euro);
+	
+	svg.selectAll(".euro")
+		.data(euro.features,function(d,i) {return d+i})
+		.enter()
+		.append("path")
+		.attr("class", "euro")
+		.attr("d", path);
+	
 	svg.selectAll(".province")
 		.data(province.features, function(d,i) {return d+i})
 		.enter()
@@ -99,7 +147,10 @@ d3.json("/data/italia.topojson", function(error, Italia) {
 		.attr("class", "provincia")
 		.attr("id", function(d) { return "prov_" + d.properties.id;})
 		.attr("d", path)
-		.on("click",click);
+		.on("click",click)
+		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("Provincia di: " + d.properties.name);})
+		.on("mousemove", function(){return tooltip.style("top", (event.pageY-20) + "px").style("left",(event.pageX + 20)+"px");})
+		.on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
 	svg.selectAll(".regione")
 		.data(regioni.features,function(d,i) {return d+i})
@@ -111,10 +162,13 @@ d3.json("/data/italia.topojson", function(error, Italia) {
 		
 });
 
+var j = 1;
+
 function click(d) {
+	if (active.node() != null && active.node() != this) {
+		d3.selectAll(".com_" + active.data()[0].properties.id).remove();
+	};
 	console.log(active.node());
-	console.log(this);
-	if (active.node() != this && active.node() != null) return reset();
 	active.classed("active", false);
 	active = d3.select(this).classed("active", true);
 	find_bounds(d);
@@ -123,19 +177,21 @@ function click(d) {
   
   	d3.json(comune_file, function(error, comuni) {
 	var comuni = topojson.feature(comuni, comuni.objects.comuni);
-	svg.selectAll(".comune")
+	svg.selectAll(".comune order_" + j)
 		.data(comuni.features, function(d,i) {return d+i})
 		.enter()
 		.append("path")
 		.attr("class", function(d,i) {return "comune " + "com_" + d.properties.prov_id;})
 		.attr("id", function(d,i) {return d.properties.id;})
 		.attr("d", path)
-		.on("mouseover", function(d,i) {console.log(d.properties);})	
+		.on("mouseover", function(d,i){return tooltip.style("visibility", "visible").html("Nome di comune: " + d.properties.nome + "<br/> Nome abitanti:" + d.properties.demonym);})
+		.on("mousemove", function(){return tooltip.style("top", (event.pageY-20) + "px").style("left",(event.pageX + 20)+"px");})
+		.on("mouseout", function(){return tooltip.style("visibility", "hidden");})
 		.on("dblclick", reset);
-
+		
+	j += 1;
 	});
 }
-
 
 function find_bounds(d) {
 	var bounds = path.bounds(d),
@@ -143,24 +199,26 @@ function find_bounds(d) {
 		dy = bounds[1][1] - bounds[0][1],
 		x = (bounds[0][0] + bounds[1][0]) / 2,
 		y = (bounds[0][1] + bounds[1][1]) / 2,
-		scale = .9 / Math.max(dx / width, dy / height),
+		scale = .7 / Math.max(dx / width, dy / height),
 		translate = [width / 2 - scale * x, height / 2 - scale * y];
 	svg.transition()
-		.duration(1000)
-		.style("stroke-width", 1.5 / scale + "px")
+		.duration(1500)
+		.style("stroke-width", 1 / scale + "px")
 		.attr("transform", "translate(" + translate + ")scale(" + scale + ")");
-
 }
+
 function reset() {
+	var provNum =  d3.select(this).data()[0].properties.prov_id;
+	d3.selectAll(".com_" + provNum).remove();
 	active.classed("active", false);
 	active = d3.select(null);
-	d3.selectAll(".com_" + d.properties.prov_id).remove();
-
+	
 	svg.transition()
-		.duration(500)
-		.style("stroke-width", "1.5px")
+		.duration(1500)
+		.style("stroke-width", ".75px")
 		.attr("transform", "");
 }
+
 
 </script>
 </body>
