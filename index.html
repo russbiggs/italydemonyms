@@ -5,10 +5,6 @@
 <style>
 
 
-body {
-	background-color:black;
-}
-
 .map {
 	background-color: #C2D5F3;
 
@@ -79,6 +75,7 @@ body {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
 
 <div class = "content container">
+<div class="row">
 	<div class = "col-md-3 hidden-xs">
 		<h2>Nome abitanti dei comuni d'Italia </h2>
 		<ul>
@@ -89,21 +86,19 @@ body {
 		
 		<p>tutti i dati sono di http://it.wikipedia.org</p> 
 	</div>
-	<div class = "col-md-9 hidden-xs map">
+	<div class = "col-md-9 hidden-xs map" style="padding-left:0;">
 	</div>
 </div>
+</div>
 <script>
-var margin = {top: 5, left: 5, bottom: 5, right: 5}, 
-	width = parseInt(d3.select('.map').style('width')),
-	width = width - margin.left - margin.right,
+var margin = {top: 0, left: 0, bottom: 0, right: 0}, 
+	width = parseFloat(d3.select('.map').style('width')),
 	height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 	active = d3.select(null);
-
+console.log(width);
 d3.select(window).on('resize', resize);
 function resize() {
-    width = parseInt(d3.select('.map').style('width'));
-	console.log(width);
-    width = width - margin.left - margin.right;
+    width = parseFloat(d3.select('.map').style('width')),
     height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
 
     projection
@@ -131,11 +126,14 @@ var tooltip = d3.select("body")
 	.style("visibility", "hidden");
 
 
+	
+	
 var projection = d3.geo.mercator()
     .center([12, 42])
     .scale(width * 2.5)
     .translate([width / 2, height / 2]);
-
+	
+	
 var svg = d3.select(".map").append("svg")
     .attr("width", width)
     .attr("height", height)
