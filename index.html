@@ -11,7 +11,7 @@
 }
 
 .euro {
-	fill:#F0F0F0;
+	fill:#94989E;
 }
 
 .regione {
@@ -49,8 +49,14 @@
 
 }
 
+text {
+	pointer-events: none;	
+}
+
 .reg-label {
+	pointer-events: none;
 	font-size:.5em;
+	text-shadow: 0.1em 0.1em #fff;
 }
 
 .info-panel {
@@ -84,7 +90,8 @@
 		<li> Fare un doppio click per rimpicciolire la vista </li>
 		</ul>
 		
-		<p>tutti i dati sono di http://it.wikipedia.org</p> 
+		<p>dati di comuni da http://it.wikipedia.org</p> 
+		<p>geodati da http://www.istat.it/en/</p> 
 	</div>
 	<div class = "col-md-9 hidden-xs map" style="padding-left:0;">
 	</div>
@@ -116,6 +123,14 @@ function resize() {
 	svg.selectAll(".provincia").attr('d', path);
 	
 	svg.selectAll(".comune").attr('d', path);
+	
+	svg.selectAll("text").attr('d', path)
+	.attr("x", function(d){
+		return path.centroid(d)[0] - 15;
+	})
+	.attr("y", function(d){
+		return  path.centroid(d)[1];
+	});
 }
 
 var tooltip = d3.select("body")

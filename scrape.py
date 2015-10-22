@@ -2,14 +2,13 @@ from bs4 import BeautifulSoup
 import csv
 import re
 import requests
-import sys 
 import string
 
-comune_base_url = "https://it.wikipedia.org/wiki/Comuni_d%27Italia_"   
+comune_base_url = "https://it.wikipedia.org/wiki/Comuni_d%27Italia_"
 base_url = comune_base_url[:24]
-alpha = list(string.ascii_uppercase)
-alpha[7:8] = ""
-alpha[7] = "H-I" #H and I do not have independent pages
+letters = list(string.ascii_uppercase)
+letters[7:8] = ""
+letters[7] = "H-I" #H and I do not have independent pages
 
 def table_scrape(input_table):
     '''searches table within page'''
@@ -20,8 +19,8 @@ def table_scrape(input_table):
             comune_name = anchor[0]['href']
             comune_markup = requests.get(base_url + comune_name)
             comune_data = comune_markup.text
-            comune_soup = BeautifulSoup(comune_data, from_encoding = 'utf-8')
-            demonym_title = comune_soup.find('a', text = re.compile("Nome.abitanti"))
+            comune_soup = BeautifulSoup(comune_data, from_encoding='utf-8')
+            demonym_title = comune_soup.find('a', text=re.compile("Nome.abitanti"))
             istat = comune_soup.find('th', text=re.compile("Fuso.orario"))
             try:
                 istat_num = istat.parent.findNextSibling('tr').find('th').findNextSibling('td').text
@@ -40,21 +39,21 @@ def table_scrape(input_table):
                 regione = anchor[2].text
                 provincia = ""
                 comune = anchor[0].text
-            writer.writerow({'regione':regione, 'provincia':provincia,'ISTAT':istat_num, 'comune':comune, 'demonym':demonym})
+            writer.writerow({'regione':regione, 'provincia':provincia, 'ISTAT':istat_num, 'comune':comune, 'demonym':demonym})
     else:
         pass
 
 
-with open("italia2.csv", 'w', newline = '', encoding = 'utf-8') as f:
-    field_names = ["regione","provincia","ISTAT","comune","demonym"]
-    writer = csv.DictWriter(f, fieldnames = field_names)
+with open("italia2.csv", 'w', newline='', encoding='utf-8') as f:
+    field_names = ["regione", "provincia", "ISTAT", "comune", "demonym"]
+    writer = csv.DictWriter(f, fieldnames=field_names)
     writer.writeheader()
-    for item in alpha:
-        comune_list_markup = requests.get(comune_base_url + "(" + item + ")")
+    for letter in letters:
+        comune_list_markup = requests.get(comune_base_url + "(" + letter + ")")
         list_data = comune_list_markup.text
         soup = BeautifulSoup(list_data)
         comune_table = soup.find('table', {'class':'wikitable plainlinks'})
-        if item == "H-I":
+        if letter == "H-I":
             comune_tables = soup.find_all('table', {'class':'wikitable plainlinks'})
             for comune_table in comune_tables:
                 table_scrape(comune_table)
